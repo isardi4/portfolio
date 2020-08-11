@@ -1,0 +1,250 @@
+let fecha1= DATE(ADDYEARS(YEARSTART(TODAY()),-12),'DD/MM/YYYY');//date(peek('FechaIni'),'DD/MM/YYYY');
+
+let fecha2= date(yearend(today()),'DD/MM/YYYY');//date(peek('FechaFin'),'DD/MM/YYYY');
+
+set vFechaInicio 	= date#('$(fecha1)','DD/MM/YYYY');
+set vFechaFin       = date#('$(fecha2)','DD/MM/YYYY');
+
+SET S_FiscalMonthStart = 1;
+SET S_TABLA = 'Calendario';
+
+Calendario_TMP:
+LOAD
+	$(vFechaInicio) + recno() - 1	AS %Fecha
+AUTOGENERATE ($(vFechaFin) - $(vFechaInicio) + 1);
+
+CALENDARIO_01:
+LOAD
+	Date(%Fecha,'DD/MM/YYYY') as FechaCalendario,	
+	num(year(%Fecha),'0000')&num(month(%Fecha),'00')&
+num(day(%Fecha),'00') as %Fecha,
+	year(%Fecha)												AS Año,
+	num(month(%Fecha),'00')										AS Mes,
+	day(%Fecha)													AS Dia,
+	dual(
+		text(date(%Fecha, 'MMM')) &'-'& year(%Fecha),
+		year(%Fecha) & num(month(%Fecha), '00')
+		)														AS AñoMes
+RESIDENT Calendario_TMP;
+
+DROP TABLE Calendario_TMP;
+
+'$(S_TABLA)':
+LOAD distinct
+FechaCalendario,
+1000000 + rowno() as IdTiempo,
+Año&Mes as ClaveTiempo,	
+Año,
+Mes,
+Dia,
+AñoMes
+resident
+CALENDARIO_01;
+
+DROP TABLE CALENDARIO_01;
+//store TIEMPO into ..\QVD\TIEMPO.qvd;
+//drop table TIEMPO;
+
+
+Relacion:
+JOIN
+LOAD 
+FechaCalendario as ID_RELACION
+RESIDENT '$(S_TABLA)';
+
+
+
+$(S_TABLA)_FINAL:
+LOAD DISTINCT
+//	IdTiempo, 
+    FechaCalendario,
+//     ClaveTiempo, 
+     ID_RELACION,
+     Año, 
+     Mes, 
+     Dia,
+     AñoMes,
+     IF(ID_RELACION>=ADDMONTHS(FechaCalendario,-11) AND ID_RELACION<= FechaCalendario,1,0)	AS FlagR12,
+     IF(ID_RELACION>=ADDMONTHS(FechaCalendario,-8)  AND ID_RELACION<= FechaCalendario,1,0)	AS FlagR9,
+     IF(ID_RELACION>=ADDMONTHS(FechaCalendario,-5)  AND ID_RELACION<= FechaCalendario,1,0)	AS FlagR6,
+     IF(ID_RELACION>=ADDMONTHS(FechaCalendario,-2)  AND ID_RELACION<= FechaCalendario,1,0)	AS FlagR3,
+     IF(ID_RELACION>=ADDMONTHS(FechaCalendario,-23) AND ID_RELACION<= FechaCalendario,1,0)	AS FlagR24,
+     
+     FABS(InYearToDate(ID_RELACION, FechaCalendario,0,$(S_FiscalMonthStart))) 		AS FlagYTD,
+	 FABS(InYearToDate(ID_RELACION, FechaCalendario,-1,$(S_FiscalMonthStart))) 		AS FlagYTD_PY,
+
+	
+	FABS(ID_RELACION = FechaCalendario) 											AS FlagCY,
+	FABS(ID_RELACION = ADDMONTHS(FechaCalendario,-12)) 								AS FlagPY,
+		
+	IF(MONTHSTART(ID_RELACION) = ADDMONTHS(MONTHSTART(FechaCalendario),-1),1)		AS FlagPM,
+	IF(MONTHSTART(ID_RELACION) = ADDMONTHS(MONTHSTART(FechaCalendario),-3),1)		AS FlagPQ
+     
+     
+RESIDENT $(S_TABLA)
+WHERE 
+//	MAKEDATE(
+//		YEAR(monthend(FechaCalendario)),
+//		NUM(MONTH(monthend(FechaCalendario))),
+//		NUM(DAY(monthend(FechaCalendario)))
+//	) = FechaCalendario
+//	AND 
+	(
+	FABS(InYearToDate(ID_RELACION, FechaCalendario,0,$(S_FiscalMonthStart))) 		= 1 //(YTD)
+	OR FABS(InYearToDate(ID_RELACION, FechaCalendario,-1,$(S_FiscalMonthStart))) 	= 1 //(LYTD)
+	
+//	OR FABS(InYearToDate(ID_RELACION, FechaCalendario,-2,$(S_FiscalMonthStart))) 	= 1 //(LYTD2)
+	
+//	OR FABS(InMonthToDate(Fecha_Lnk, Fecha, 0))							= 1 //(MTD)
+//	OR FABS(InMonthToDate(Fecha_Lnk, Fecha,-12)) 						= 1 //(LYMTD)
+//	OR FABS(InQuarterToDate(ID_RELACION, FechaCalendario, 0)) 						= 1 //(QTD)
+//	OR FABS(InQuarterToDate(Fecha_Lnk, Fecha, -4)) 						= 1 //(LYQTD)
+	OR FABS(ID_RELACION = FechaCalendario) 											= 1 //(CY)
+	OR FABS(ID_RELACION = ADDMONTHS(FechaCalendario,-12)) 							= 1 //(LY)
+//	OR FABS(ID_RELACION = ADDMONTHS(FechaCalendario,-24)) 	                         =1 //LY2
+	OR MONTHSTART(ID_RELACION) = ADDMONTHS(MONTHSTART(FechaCalendario),-1)				//(LM)
+	OR MONTHSTART(ID_RELACION) = ADDMONTHS(MONTHSTART(FechaCalendario),-3)				//(LQ)
+//	OR MONTHSTART(ID_RELACION) = MONTHSTART(YEAREND(AddYears(MONTHSTART(FechaCalendario),-1)))
+//	OR YEAR(Fecha_Lnk) = YEAR(Fecha)-1
+//	OR (YEAR(Fecha_Lnk) = YEAR(Fecha) AND MONTH(Fecha_Lnk)=12)
+//	OR (YEAR(Fecha_Lnk) = YEAR(Fecha)-1 AND MONTH(Fecha_Lnk)=12)
+	OR (ID_RELACION>=ADDMONTHS(MONTHSTART(FechaCalendario),-12) AND ID_RELACION<= FechaCalendario)
+	OR (ID_RELACION>=ADDMONTHS(MONTHSTART(FechaCalendario),-11) AND ID_RELACION<= FechaCalendario)
+	OR (ID_RELACION>=ADDMONTHS(MONTHSTART(FechaCalendario),-5) AND ID_RELACION<= FechaCalendario)
+	OR (ID_RELACION>=ADDMONTHS(MONTHSTART(FechaCalendario),-23) AND ID_RELACION<= FechaCalendario)
+	OR (ID_RELACION>=ADDMONTHS(MONTHSTART(FechaCalendario),-2) AND ID_RELACION<= FechaCalendario)
+	)
+
+;
+DROP TABLE $(S_TABLA);
+
+
+
+// STORE $(S_TABLA)_FINAL INTO ..\QVD\$(S_ARCHIVO_STORE)(QVD);
+
+
+// DROP TABLE $(S_TABLA)_FINAL;
+
+'$(S_TABLA)_TMP':
+LOAD DISTINCT
+	 //Desde, 
+     //Hasta, 
+     //IdTiempo, 
+     FechaCalendario,
+     Day(FechaCalendario) as Día, 
+     WeekDay(FechaCalendario) as Día_Desc, 
+     Week(FechaCalendario) as Semana,
+     year(FechaCalendario)&num(month(FechaCalendario),'00') as AñoMes,
+     
+     Año, 
+     Mes, 
+     //Dia, 
+//     AñoMes,
+     FlagCY,
+     FlagCY as %FlagCY,
+     FlagPY,
+     FlagPQ,
+//     FlagNM,
+     FlagPM,
+//     FlagR18,
+     FlagR9,
+     FlagR6,
+     FlagR3,
+//     FlagPPY,
+//     FlagPPPY, 
+//     FlagFY,
+//     FlagFY_PY,
+//     FlagFY_PPY,
+//     FlagYTG,
+//     FlagYTG_PY,
+//     FlagYTG_PPY,
+     FlagYTD,
+     FlagYTD_PY,
+//     FlagYTD_PPY,
+     FlagR12,
+//     FlagR12_PY,
+     year(ID_RELACION)&num(month(ID_RELACION),'00') as AñoMesRelacion,
+     DATE(ID_RELACION) AS FECHA_RELACION,
+     month(ID_RELACION)&'-'&year(ID_RELACION)       AS Mes_Año_Flag,
+     year(ID_RELACION) as Año_Flag,
+     Day(ID_RELACION) as Día_Flag, 
+     WeekDay(ID_RELACION) as Día_Desc_Flag, 
+     Week(ID_RELACION) as Semana_Flag,
+     month(ID_RELACION) as Mes_Flag
+    // ID_RELACION
+RESIDENT $(S_TABLA)_FINAL;
+
+LEFT JOIN('$(S_TABLA)_TMP')
+LOAD * INLINE [
+    MesDescripcion, Mes , NumeroMes
+    ene, 01 ,1
+    feb, 02 ,2
+    mar, 03 ,3
+    abr, 04 ,4
+    may, 05 ,5
+    jun, 06 ,6
+    jul, 07 ,7
+    ago, 08 ,8
+    sep, 09 ,9
+    oct, 10 ,10
+    nov, 11 ,11
+    dic, 12 ,12
+];
+
+LEFT JOIN('$(S_TABLA)_TMP')
+LOAD * INLINE [
+    Mes , NumeroQ , DescripcionQ
+    01 ,1 , Q1
+    02 ,1 , Q1
+    03 ,1, Q1
+    04 ,2, Q2
+    05 ,2, Q2
+    06 ,2, Q2
+    07 ,3, Q3
+    08 ,3, Q3
+    09 ,3, Q3
+    10 ,4, Q4
+    11 ,4, Q4
+    12 ,4, Q4
+];
+
+
+NoConcatenate
+'$(S_TABLA)':
+LOAD 
+	 FechaCalendario		AS %KEY_FECHA,
+	 FechaCalendario, 
+//	 Mes, 
+     Día, 
+     Día_Desc, 
+     Semana, 
+     AñoMes					AS AñoMes#, 
+     Año, 
+     FlagCY, 
+     %FlagCY, 
+     FlagPY, 
+     FlagPQ, 
+     FlagPM, 
+     FlagR9, 
+     FlagR6, 
+     FlagR3, 
+     FlagYTD, 
+     FlagYTD_PY, 
+     FlagR12, 
+     AñoMesRelacion, 
+     FECHA_RELACION, 
+     Mes_Año_Flag, 
+     Año_Flag, 
+     Día_Flag, 
+     Día_Desc_Flag, 
+     Semana_Flag, 
+     Mes_Flag, 
+     MesDescripcion							AS Mes, 
+     NumeroMes, 
+     NumeroQ, 
+     DescripcionQ,
+     MesDescripcion&'-'&right(Año,2)		AS AñoMes
+RESIDENT '$(S_TABLA)_TMP';
+DROP TABLE '$(S_TABLA)_TMP';
+
+DROP TABLE '$(S_TABLA)_FINAL';
