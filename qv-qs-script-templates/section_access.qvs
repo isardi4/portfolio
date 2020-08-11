@@ -1,0 +1,390 @@
+// FULL JOIN
+
+AREA:
+LOAD Distinct [Unidad de Gestión_ Corto], 
+     Operación
+FROM
+[..\..\..\DATA_XLS_1_JERARQUIA_GEOGRAFICA.QVD]
+(qvd);
+
+SOP:
+LOAD Distinct
+     [Acceso Soporte]
+FROM
+[..\..\..\DATA_XLS_1_JERARQUIA_NIVELES_CECO.QVD]
+(qvd);
+
+AR:
+LOAD DISTINCT
+	UPPER(AGRUPACION_JER_CUENTAS)	AS AGRUPACION_JER_CUENTAS_UPPER,
+	UPPER(RUBRO_NV2) 				AS RUBRO_NV2_UPPER
+FROM
+[..\QVD\STG_COSTOS_N20_OPEX.QVD]
+(qvd);
+
+
+Concatenate (AREA)
+load 
+	'' as [Unidad de Gestión_ Corto],
+	'' as Operación
+AutoGenerate 1;
+
+
+Concatenate (SOP)
+load 
+	'' as  [Acceso Soporte]
+AutoGenerate 1;
+
+Concatenate (AR)
+load 
+	'' AS AGRUPACION_JER_CUENTAS_UPPER,
+	'' AS RUBRO_NV2_UPPER
+AutoGenerate 1;
+
+//
+SIN_ASIGNAR:
+load 
+	'Sin Asignar' as Operación_Corto_2
+AutoGenerate 1;
+
+join(SIN_ASIGNAR)
+LOAD [Unidad de Gestión_ Corto]
+
+FROM
+[..\..\..\DATA_XLS_1_JERARQUIA_GEOGRAFICA.QVD]
+(qvd);
+
+Concatenate (SOP)
+load 
+	'Sin Asignar' as  [Acceso Soporte]
+AutoGenerate 1;
+
+Concatenate (AR)
+load 
+	'Sin Asignar' AS AGRUPACION_JER_CUENTAS_UPPER,
+	'Sin Asignar' AS RUBRO_NV2_UPPER
+AutoGenerate 1;
+
+// JOIN
+
+concatenate(AREA)
+LOAD Distinct [Unidad de Gestión_ Corto], 
+   Operación_Corto_2 as Operación
+Resident SIN_ASIGNAR;
+DROP Table SIN_ASIGNAR;
+
+join (AREA)
+Load [Acceso Soporte]
+Resident SOP;
+
+JOIN (AREA)
+LOAD
+	AGRUPACION_JER_CUENTAS_UPPER,
+	RUBRO_NV2_UPPER
+RESIDENT AR;
+
+drop Tables SOP, AR;
+
+// Todos y Basico
+
+LINK:
+LOAD Distinct [Unidad de Gestión_ Corto], 
+     Operación,
+     [Acceso Soporte],
+     AGRUPACION_JER_CUENTAS_UPPER,
+	 RUBRO_NV2_UPPER,
+     [Unidad de Gestión_ Corto]&'-'&Operación&'-'&[Acceso Soporte]&'-'&AGRUPACION_JER_CUENTAS_UPPER&'-'&RUBRO_NV2_UPPER as %Key
+Resident AREA;
+
+Concatenate (LINK)
+Load Distinct [Unidad de Gestión_ Corto], 
+     Operación,
+     [Acceso Soporte],
+     AGRUPACION_JER_CUENTAS_UPPER,
+	 RUBRO_NV2_UPPER,
+     '$(vALL)'&'-'&'$(vALL)'&'-'&'$(vALL)'&'-'&'$(vALL)'&'-'&'$(vALL)' as %Key
+Resident AREA;
+
+
+// 1 Opcion
+
+Concatenate(LINK) //SOLO UG
+Load Distinct [Unidad de Gestión_ Corto], 
+     Operación,     
+     [Acceso Soporte],
+     AGRUPACION_JER_CUENTAS_UPPER,
+	 RUBRO_NV2_UPPER,
+     [Unidad de Gestión_ Corto]&'-'&'$(vALL)'&'-'&'$(vALL)'&'-'&'$(vALL)'&'-'&'$(vALL)' as %Key
+Resident AREA;
+
+Concatenate(LINK) //SOLO Operación_Corto
+Load Distinct [Unidad de Gestión_ Corto], 
+     Operación,
+     [Acceso Soporte],
+     AGRUPACION_JER_CUENTAS_UPPER,
+	 RUBRO_NV2_UPPER,
+     '$(vALL)'&'-'&Operación&'-'&'$(vALL)'&'-'&'$(vALL)'&'-'&'$(vALL)' as %Key
+Resident AREA;
+
+Concatenate(LINK) //SOLO [Acceso Facilities]
+Load Distinct [Unidad de Gestión_ Corto], 
+     Operación,
+     [Acceso Soporte],
+     AGRUPACION_JER_CUENTAS_UPPER,
+	 RUBRO_NV2_UPPER,
+     '$(vALL)'&'-'&'$(vALL)'&'-'&[Acceso Soporte]&'-'&'$(vALL)'&'-'&'$(vALL)' as %Key
+Resident AREA;
+
+Concatenate(LINK) //SOLO AGRUPACION_JER_CUENTAS_UPPER
+Load Distinct [Unidad de Gestión_ Corto], 
+     Operación,
+     [Acceso Soporte],
+     AGRUPACION_JER_CUENTAS_UPPER,
+	 RUBRO_NV2_UPPER,
+     '$(vALL)'&'-'&'$(vALL)'&'-'&'$(vALL)'&'-'&AGRUPACION_JER_CUENTAS_UPPER&'-'&'$(vALL)' as %Key
+Resident AREA;
+
+Concatenate(LINK) //SOLO RUBRO_NV2_UPPER
+Load Distinct [Unidad de Gestión_ Corto], 
+     Operación,
+     [Acceso Soporte],
+     AGRUPACION_JER_CUENTAS_UPPER,
+	 RUBRO_NV2_UPPER,
+     '$(vALL)'&'-'&'$(vALL)'&'-'&'$(vALL)'&'-'&'$(vALL)'&'-'&RUBRO_NV2_UPPER as %Key
+Resident AREA;
+
+// 2 Opciones x UG
+
+//TODO UG
+Concatenate(LINK) //UG y OP
+Load Distinct [Unidad de Gestión_ Corto], 
+     Operación,
+     [Acceso Soporte],
+     AGRUPACION_JER_CUENTAS_UPPER,
+	 RUBRO_NV2_UPPER,
+     [Unidad de Gestión_ Corto]&'-'&Operación&'-'&'$(vALL)'&'-'&'$(vALL)'&'-'&'$(vALL)' as %Key
+Resident AREA;
+
+Concatenate(LINK) //UG y SOP
+Load Distinct [Unidad de Gestión_ Corto], 
+     Operación,
+     [Acceso Soporte],
+     AGRUPACION_JER_CUENTAS_UPPER,
+	 RUBRO_NV2_UPPER,
+     [Unidad de Gestión_ Corto]&'-'&'$(vALL)'&'-'&[Acceso Soporte]&'-'&'$(vALL)'&'-'&'$(vALL)' as %Key
+Resident AREA;
+
+Concatenate(LINK) //UG y SOP
+Load Distinct [Unidad de Gestión_ Corto], 
+     Operación,
+     [Acceso Soporte],
+     AGRUPACION_JER_CUENTAS_UPPER,
+	 RUBRO_NV2_UPPER,
+     [Unidad de Gestión_ Corto]&'-'&'$(vALL)'&'-'&'$(vALL)'&'-'&AGRUPACION_JER_CUENTAS_UPPER&'-'&'$(vALL)' as %Key
+Resident AREA;
+
+Concatenate(LINK) //UG y SOP
+Load Distinct [Unidad de Gestión_ Corto], 
+     Operación,
+     [Acceso Soporte],
+     AGRUPACION_JER_CUENTAS_UPPER,
+	 RUBRO_NV2_UPPER,
+     [Unidad de Gestión_ Corto]&'-'&'$(vALL)'&'-'&'$(vALL)'&'-'&'$(vALL)'&'-'&RUBRO_NV2_UPPER as %Key
+Resident AREA;
+
+// 2 Opciones por Operacion
+
+// TODO OP menos OP-UG que ya esta
+
+Concatenate(LINK) //OP y SOP
+Load Distinct [Unidad de Gestión_ Corto], 
+     Operación,
+     [Acceso Soporte],
+     AGRUPACION_JER_CUENTAS_UPPER,
+	 RUBRO_NV2_UPPER,
+     '$(vALL)'&'-'&Operación&'-'&[Acceso Soporte]&'-'&'$(vALL)'&'-'&'$(vALL)' as %Key
+Resident AREA;
+
+
+Concatenate(LINK) //OP y AGRUP
+Load Distinct [Unidad de Gestión_ Corto], 
+     Operación,
+     [Acceso Soporte],
+     AGRUPACION_JER_CUENTAS_UPPER,
+	 RUBRO_NV2_UPPER,
+     '$(vALL)'&'-'&Operación&'-'&'$(vALL)'&'-'&AGRUPACION_JER_CUENTAS_UPPER&'-'&'$(vALL)' as %Key
+Resident AREA;
+
+
+Concatenate(LINK) //OP y RUBRO
+Load Distinct [Unidad de Gestión_ Corto], 
+     Operación,
+     [Acceso Soporte],
+     AGRUPACION_JER_CUENTAS_UPPER,
+	 RUBRO_NV2_UPPER,
+     '$(vALL)'&'-'&Operación&'-'&'$(vALL)'&'-'&'$(vALL)'&'-'&RUBRO_NV2_UPPER as %Key
+Resident AREA;
+
+// 2 opciones Resto
+
+Concatenate(LINK) // SOP y AGRUP
+Load Distinct [Unidad de Gestión_ Corto], 
+     Operación,
+     [Acceso Soporte],
+     AGRUPACION_JER_CUENTAS_UPPER,
+	 RUBRO_NV2_UPPER,
+     '$(vALL)'&'-'&'$(vALL)'&'-'&[Acceso Soporte]&'-'&AGRUPACION_JER_CUENTAS_UPPER&'-'&'$(vALL)' as %Key
+Resident AREA;
+
+
+Concatenate(LINK) // SOP y RUBRO
+Load Distinct [Unidad de Gestión_ Corto], 
+     Operación,
+     [Acceso Soporte],
+     AGRUPACION_JER_CUENTAS_UPPER,
+	 RUBRO_NV2_UPPER,
+     '$(vALL)'&'-'&'$(vALL)'&'-'&[Acceso Soporte]&'-'&'$(vALL)'&'-'&RUBRO_NV2_UPPER as %Key
+Resident AREA;
+
+
+Concatenate(LINK) // AGRUP Y RUBRO
+Load Distinct [Unidad de Gestión_ Corto], 
+     Operación,
+     [Acceso Soporte],
+     AGRUPACION_JER_CUENTAS_UPPER,
+	 RUBRO_NV2_UPPER,
+     '$(vALL)'&'-'&'$(vALL)'&'-'&'$(vALL)'&'-'&AGRUPACION_JER_CUENTAS_UPPER&'-'&RUBRO_NV2_UPPER as %Key
+Resident AREA;
+
+// 3 Opciones UG-Operaciones
+
+//TODO UG-OP
+
+Concatenate(LINK) //UG - OP - SOP
+Load Distinct [Unidad de Gestión_ Corto], 
+     Operación,
+     [Acceso Soporte],
+     AGRUPACION_JER_CUENTAS_UPPER,
+	 RUBRO_NV2_UPPER,
+     [Unidad de Gestión_ Corto]&'-'&Operación&'-'&[Acceso Soporte]&'-'&'$(vALL)'&'-'&'$(vALL)' as %Key
+Resident AREA;
+
+Concatenate(LINK) //UG - OP - AGRUP
+Load Distinct [Unidad de Gestión_ Corto], 
+     Operación,
+     [Acceso Soporte],
+     AGRUPACION_JER_CUENTAS_UPPER,
+	 RUBRO_NV2_UPPER,
+     [Unidad de Gestión_ Corto]&'-'&Operación&'-'&'$(vALL)'&'-'&AGRUPACION_JER_CUENTAS_UPPER&'-'&'$(vALL)' as %Key
+Resident AREA;
+
+Concatenate(LINK) //UG - OP - RUBRO
+Load Distinct [Unidad de Gestión_ Corto], 
+     Operación,
+     [Acceso Soporte],
+     AGRUPACION_JER_CUENTAS_UPPER,
+	 RUBRO_NV2_UPPER,
+     [Unidad de Gestión_ Corto]&'-'&Operación&'-'&'$(vALL)'&'-'&'$(vALL)'&'-'&RUBRO_NV2_UPPER as %Key
+Resident AREA;
+
+// 3 Opciones OP-SOP
+
+Concatenate(LINK) //UG - OP - SOP
+Load Distinct [Unidad de Gestión_ Corto], 
+     Operación,
+     [Acceso Soporte],
+     AGRUPACION_JER_CUENTAS_UPPER,
+	 RUBRO_NV2_UPPER,
+     '$(vALL)'&'-'&Operación&'-'&[Acceso Soporte]&'-'&'$(vALL)'&'-'&'$(vALL)' as %Key
+Resident AREA;
+
+Concatenate(LINK) //UG - OP - SOP
+Load Distinct [Unidad de Gestión_ Corto], 
+     Operación,
+     [Acceso Soporte],
+     AGRUPACION_JER_CUENTAS_UPPER,
+	 RUBRO_NV2_UPPER,
+     '$(vALL)'&'-'&Operación&'-'&[Acceso Soporte]&'-'&AGRUPACION_JER_CUENTAS_UPPER&'-'&'$(vALL)' as %Key
+Resident AREA;
+
+Concatenate(LINK) //UG - OP - SOP
+Load Distinct [Unidad de Gestión_ Corto], 
+     Operación,
+     [Acceso Soporte],
+     AGRUPACION_JER_CUENTAS_UPPER,
+	 RUBRO_NV2_UPPER,
+     '$(vALL)'&'-'&Operación&'-'&[Acceso Soporte]&'-'&'$(vALL)'&'-'&RUBRO_NV2_UPPER as %Key
+Resident AREA;
+
+Concatenate(LINK) //UG - OP - SOP
+Load Distinct [Unidad de Gestión_ Corto], 
+     Operación,
+     [Acceso Soporte],
+     AGRUPACION_JER_CUENTAS_UPPER,
+	 RUBRO_NV2_UPPER,
+     '$(vALL)'&'-'&'$(vALL)'&'-'&[Acceso Soporte]&'-'&AGRUPACION_JER_CUENTAS_UPPER&'-'&RUBRO_NV2_UPPER as %Key
+Resident AREA;
+
+
+// 4 Opciones
+
+Concatenate(LINK) //UG - OP - SOP
+Load Distinct [Unidad de Gestión_ Corto], 
+     Operación,
+     [Acceso Soporte],
+     AGRUPACION_JER_CUENTAS_UPPER,
+	 RUBRO_NV2_UPPER,
+     [Unidad de Gestión_ Corto]&'-'&Operación&'-'&[Acceso Soporte]&'-'&AGRUPACION_JER_CUENTAS_UPPER&'-'&'$(vALL)' as %Key
+Resident AREA;
+
+Concatenate(LINK) //UG - OP - SOP
+Load Distinct [Unidad de Gestión_ Corto], 
+     Operación,
+     [Acceso Soporte],
+     AGRUPACION_JER_CUENTAS_UPPER,
+	 RUBRO_NV2_UPPER,
+     '$(vALL)'&'-'&Operación&'-'&[Acceso Soporte]&'-'&AGRUPACION_JER_CUENTAS_UPPER&'-'&RUBRO_NV2_UPPER as %Key
+Resident AREA;
+
+Concatenate(LINK) //UG - OP - SOP
+Load Distinct [Unidad de Gestión_ Corto], 
+     Operación,
+     [Acceso Soporte],
+     AGRUPACION_JER_CUENTAS_UPPER,
+	 RUBRO_NV2_UPPER,
+     [Unidad de Gestión_ Corto]&'-'&Operación&'-'&[Acceso Soporte]&'-'&'$(vALL)'&'-'&RUBRO_NV2_UPPER as %Key
+Resident AREA;
+
+Concatenate(LINK) //UG - OP - SOP
+Load Distinct [Unidad de Gestión_ Corto], 
+     Operación,
+     [Acceso Soporte],
+     AGRUPACION_JER_CUENTAS_UPPER,
+	 RUBRO_NV2_UPPER,
+     [Unidad de Gestión_ Corto]&'-'&Operación&'-'&'$(vALL)'&'-'&AGRUPACION_JER_CUENTAS_UPPER&'-'&RUBRO_NV2_UPPER as %Key
+Resident AREA;
+
+Concatenate(LINK) //UG - OP - SOP
+Load Distinct [Unidad de Gestión_ Corto], 
+     Operación,
+     [Acceso Soporte],
+     AGRUPACION_JER_CUENTAS_UPPER,
+	 RUBRO_NV2_UPPER,
+     [Unidad de Gestión_ Corto]&'-'&'$(vALL)'&'-'&[Acceso Soporte]&'-'&AGRUPACION_JER_CUENTAS_UPPER&'-'&RUBRO_NV2_UPPER as %Key
+Resident AREA;
+
+// Todos menos MEX
+
+// MODIFICACION PARA QUE EXISTA UN GRUPO QUE PUEDE VER TODO MENOS MEXICO
+CONCATENATE(LINK)
+LOAD DISTINCT
+	[Unidad de Gestión_ Corto], 
+	[Acceso Soporte],
+	AGRUPACION_JER_CUENTAS_UPPER,
+	Operación,
+	RUBRO_NV2_UPPER,
+	'NOMEX-'& RIGHT(%Key,LEN(%Key)-4) 	AS %Key
+RESIDENT LINK
+WHERE 
+	LEFT(%Key,3) ='ALL' AND
+	[Unidad de Gestión_ Corto]<>'MEX';
